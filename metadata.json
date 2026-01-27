@@ -1,0 +1,7 @@
+{
+  "name": "Creator Hub & Job Board",
+  "description": "A comprehensive directory for creators to showcase their work, find jobs, and manage professional profiles with premium visibility options.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
