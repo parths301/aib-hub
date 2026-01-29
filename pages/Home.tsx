@@ -1,16 +1,82 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Creator, Job } from '../types';
+import { supabase } from '../supabaseClient';
 
-interface HomeProps {
-  creators: Creator[];
-  jobs: Job[];
-}
+const Home: React.FC = () => {
+  const [featuredCreators, setFeaturedCreators] = useState<Creator[]>([]);
+  const [latestJobs, setLatestJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const Home: React.FC<HomeProps> = ({ creators, jobs }) => {
-  const featuredCreators = creators.filter(c => c.status === 'APPROVED' && (c.tier === 'PLATINUM' || c.isFeatured)).slice(0, 6);
-  const latestJobs = jobs.sort((a, b) => new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime()).slice(0, 4);
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      // Fetch featured creators (Platinum or is_featured)
+      // Note: OR syntax in Supabase is a bit specific. 
+      // For simplicity, let's just fetch approved creators and filter in JS for this MVP 
+      // OR use a .or('tier.eq.PLATINUM,is_featured.eq.true')
+
+      const { data: creatorsData } = await supabase
+        .from('creators')
+        .select('*')
+        .eq('status', 'APPROVED');
+
+      const { data: jobsData } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('posted_date', { ascending: false })
+        .limit(4);
+
+      if (creatorsData) {
+        const mappedCreators: Creator[] = creatorsData.map(item => ({
+          id: item.id,
+          fullName: item.full_name,
+          email: item.email,
+          city: item.city,
+          skills: item.skills || [],
+          purchasedTags: item.purchased_tags || [],
+          bio: item.bio,
+          experience: item.experience,
+          profilePhoto: item.profile_photo,
+          portfolio: item.portfolio || [],
+          whatsapp: item.whatsapp,
+          isFeatured: item.is_featured,
+          tier: item.tier as any,
+          status: item.status as any
+        }));
+        // Filter top talent
+        setFeaturedCreators(
+          mappedCreators
+            .filter(c => c.tier === 'PLATINUM' || c.isFeatured)
+            .slice(0, 6)
+        );
+      }
+
+      if (jobsData) {
+        const mappedJobs: Job[] = jobsData.map(item => ({
+          id: item.id,
+          title: item.title,
+          city: item.city,
+          requiredSkills: item.required_skills || [],
+          description: item.description,
+          budget: item.budget,
+          company: item.company,
+          contactEmail: item.contact_email,
+          whatsapp: item.whatsapp,
+          postedDate: item.posted_date
+        }));
+        setLatestJobs(mappedJobs);
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <div className="h-screen flex items-center justify-center bg-white"><div className="text-xl font-black uppercase tracking-widest animate-pulse">Loading Aib HUB...</div></div>;
+  }
 
   return (
     <div className="bg-white">
@@ -46,22 +112,21 @@ const Home: React.FC<HomeProps> = ({ creators, jobs }) => {
           {featuredCreators.map(creator => {
             const isPlatinum = creator.tier === 'PLATINUM';
             const isGold = creator.tier === 'GOLD';
-            
+
             return (
-              <Link 
-                key={creator.id} 
+              <Link
+                key={creator.id}
                 to={`/creators/${creator.id}`}
-                className={`group block p-3 border-2 transition-all duration-300 rounded-xl hover:shadow-lg ${
-                  isPlatinum ? 'premium-platinum-border platinum-glow bg-white' :
-                  isGold ? 'premium-gold-border gold-glow bg-white' : 
-                  'border-gray-100 bg-gray-50'
-                }`}
+                className={`group block p-3 border-2 transition-all duration-300 rounded-xl hover:shadow-lg ${isPlatinum ? 'premium-platinum-border platinum-glow bg-white' :
+                  isGold ? 'premium-gold-border gold-glow bg-white' :
+                    'border-gray-100 bg-gray-50'
+                  }`}
               >
                 <div className="relative aspect-square mb-3 overflow-hidden rounded-lg bg-zinc-200">
-                  <img 
-                    src={creator.profilePhoto} 
-                    alt={creator.fullName} 
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500" 
+                  <img
+                    src={creator.profilePhoto}
+                    alt={creator.fullName}
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500"
                   />
                   {isPlatinum && (
                     <div className="absolute top-1 right-1 premium-platinum-gradient p-1 rounded-md shadow-sm">
@@ -71,9 +136,8 @@ const Home: React.FC<HomeProps> = ({ creators, jobs }) => {
                     </div>
                   )}
                 </div>
-                <h3 className={`text-[11px] font-black uppercase truncate mb-0.5 ${
-                  isPlatinum ? 'premium-platinum-text' : isGold ? 'premium-gold-text' : 'text-black'
-                }`}>
+                <h3 className={`text-[11px] font-black uppercase truncate mb-0.5 ${isPlatinum ? 'text-zinc-700' : isGold ? 'text-amber-700' : 'text-black'
+                  }`}>
                   {creator.fullName}
                 </h3>
                 <p className="text-[9px] text-gray-400 font-mono uppercase tracking-tighter">{creator.city}</p>
@@ -101,8 +165,8 @@ const Home: React.FC<HomeProps> = ({ creators, jobs }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {latestJobs.map(job => (
-              <Link 
-                key={job.id} 
+              <Link
+                key={job.id}
                 to={`/jobs/${job.id}`}
                 className="bg-white border border-gray-200 p-6 rounded-2xl group hover:border-black transition duration-300 shadow-sm flex items-center justify-between"
               >
@@ -129,7 +193,7 @@ const Home: React.FC<HomeProps> = ({ creators, jobs }) => {
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-12 text-center md:text-left bg-black text-white p-10 md:p-16 rounded-[2rem] overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 premium-platinum-gradient opacity-10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-          
+
           <div className="max-w-md">
             <h2 className="text-3xl font-black mb-4 uppercase tracking-tighter leading-tight">Elite Networking.</h2>
             <p className="text-zinc-400 text-sm font-light mb-8">Join the community where quality portfolio speaks louder than words.</p>

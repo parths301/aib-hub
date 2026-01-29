@@ -1,38 +1,110 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Creator, User, MembershipTier } from '../types';
+import { supabase } from '../supabaseClient';
 
 interface DashboardProps {
   user: User;
-  creators: Creator[];
-  setCreators: React.Dispatch<React.SetStateAction<Creator[]>>;
+  // Removed creators and setCreators
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, creators, setCreators }) => {
-  const creator = creators.find(c => c.id === user.creatorId);
-  const [formData, setFormData] = useState<Creator | null>(creator || null);
+const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+  const [formData, setFormData] = useState<Creator | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'profile' | 'portfolio' | 'tier'>('profile');
   const [successMsg, setSuccessMsg] = useState('');
 
-  if (!formData) return <div className="p-10 font-mono text-xs">INITIALIZING...</div>;
+  useEffect(() => {
+    const fetchMyProfile = async () => {
+      setLoading(true);
+      // Similar logic to MyProfile: rely on user.creatorId or linked user mechanism
+      let query = supabase.from('creators').select('*');
+      if (user.creatorId) {
+        query = query.eq('id', user.creatorId);
+      } else {
+        query = query.eq('id', user.creatorId);
+      }
+
+      const { data, error } = await query.single();
+
+      if (data) {
+        const mappedCreator: Creator = {
+          id: data.id,
+          fullName: data.full_name,
+          email: data.email,
+          city: data.city,
+          skills: data.skills || [],
+          purchasedTags: data.purchased_tags || [],
+          bio: data.bio,
+          experience: data.experience,
+          profilePhoto: data.profile_photo,
+          portfolio: data.portfolio || [],
+          whatsapp: data.whatsapp,
+          isFeatured: data.is_featured,
+          tier: data.tier as any,
+          status: data.status as any
+        };
+        setFormData(mappedCreator);
+      }
+      setLoading(false);
+    };
+
+    if (user) fetchMyProfile();
+  }, [user]);
+
+  if (loading) return <div className="p-10 font-mono text-xs">INITIALIZING SYSTEM...</div>;
+  if (!formData) return <div className="p-10 font-mono text-xs text-red-500">ERROR: PROFILE NOT FOUND</div>;
+
+  const updateCreatorInDB = async (updatedData: Partial<Creator>) => {
+    // Map partial Creator back to DB columns
+    const dbUpdate: any = {};
+    if (updatedData.bio !== undefined) dbUpdate.bio = updatedData.bio;
+    if (updatedData.fullName !== undefined) dbUpdate.full_name = updatedData.fullName;
+    if (updatedData.city !== undefined) dbUpdate.city = updatedData.city;
+    if (updatedData.whatsapp !== undefined) dbUpdate.whatsapp = updatedData.whatsapp;
+    if (updatedData.profilePhoto !== undefined) dbUpdate.profile_photo = updatedData.profilePhoto;
+    if (updatedData.portfolio !== undefined) dbUpdate.portfolio = updatedData.portfolio;
+    if (updatedData.tier !== undefined) dbUpdate.tier = updatedData.tier;
+    if (updatedData.purchasedTags !== undefined) dbUpdate.purchased_tags = updatedData.purchasedTags;
+
+    const { error } = await supabase
+      .from('creators')
+      .update(dbUpdate)
+      .eq('id', formData.id);
+
+    if (error) {
+      console.error(error);
+      setSuccessMsg('ERROR UPDATING SYSTEM');
+    } else {
+      setFormData(prev => prev ? ({ ...prev, ...updatedData }) : null);
+      setSuccessMsg('SYSTEM: PROFILE UPDATED');
+    }
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => prev ? ({ ...prev, [name]: value }) : null);
+    // Note: We are not auto-saving on every keystroke here, but the original code didn't either (it updated local state).
+    // The original code had a handleSave.
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData) return;
-    setCreators(prev => prev.map(c => c.id === formData.id ? formData : c));
-    setSuccessMsg('SYSTEM: PROFILE UPDATED');
-    setTimeout(() => setSuccessMsg(''), 3000);
+    updateCreatorInDB({
+      fullName: formData.fullName,
+      city: formData.city,
+      whatsapp: formData.whatsapp,
+      profilePhoto: formData.profilePhoto,
+      bio: formData.bio
+    });
   };
 
   const toggleTag = (tag: string) => {
     const current = formData.purchasedTags;
     const limit = formData.tier === 'PLATINUM' ? 3 : formData.tier === 'GOLD' ? 1 : 0;
-    
+
     if (!current.includes(tag) && current.length >= limit) {
       setSuccessMsg(`TIER LIMIT: ${formData.tier} ALLOWS ${limit} TAGS. UPGRADE TO ADD MORE.`);
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -42,10 +114,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, creators, setCreators }) =>
     const next = current.includes(tag)
       ? current.filter(t => t !== tag)
       : [...current, tag];
-    
-    const updated = { ...formData, purchasedTags: next };
-    setFormData(updated);
-    setCreators(prev => prev.map(c => c.id === formData.id ? updated : c));
+
+    updateCreatorInDB({ purchasedTags: next });
   };
 
   const availableTags = ['Video Editor', 'Logo Creator', 'Web Developer', 'Motion Designer', 'Social Media Designer', 'UI/UX Design'];
@@ -54,19 +124,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, creators, setCreators }) =>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="bg-white border-2 border-black overflow-hidden rounded-2xl shadow-xl">
         <div className="flex border-b-2 border-black">
-          <button 
+          <button
             onClick={() => setActiveTab('profile')}
             className={`flex-1 py-6 text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'profile' ? 'bg-black text-white' : 'text-gray-400 hover:text-black'}`}
           >
             Attributes
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('portfolio')}
             className={`flex-1 py-6 text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'portfolio' ? 'bg-black text-white' : 'text-gray-400 hover:text-black'}`}
           >
             Archives
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('tier')}
             className={`flex-1 py-6 text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'tier' ? 'bg-black text-white' : 'text-gray-400 hover:text-black'}`}
           >
@@ -137,9 +207,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, creators, setCreators }) =>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Gold Selection */}
                   <div className={`p-8 border-2 rounded-2xl transition cursor-pointer ${formData.tier === 'GOLD' ? 'border-[#bf953f] bg-[#bf953f] bg-opacity-5' : 'border-gray-100 hover:border-gray-200'}`} onClick={() => {
-                    const next = { ...formData, tier: 'GOLD' as MembershipTier };
-                    setFormData(next);
-                    setCreators(prev => prev.map(c => c.id === formData.id ? next : c));
+                    updateCreatorInDB({ tier: 'GOLD' });
                   }}>
                     <h4 className="text-lg font-black uppercase tracking-tight mb-2 premium-gold-text">Gold Member</h4>
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-6">₹799 / MO • 1 Skill Tag</p>
@@ -148,9 +216,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, creators, setCreators }) =>
 
                   {/* Platinum Selection */}
                   <div className={`p-8 border-2 rounded-2xl transition cursor-pointer shadow-lg ${formData.tier === 'PLATINUM' ? 'premium-platinum-border platinum-glow bg-zinc-50' : 'border-gray-100 hover:border-gray-200'}`} onClick={() => {
-                    const next = { ...formData, tier: 'PLATINUM' as MembershipTier };
-                    setFormData(next);
-                    setCreators(prev => prev.map(c => c.id === formData.id ? next : c));
+                    updateCreatorInDB({ tier: 'PLATINUM' });
                   }}>
                     <h4 className="text-lg font-black uppercase tracking-tight mb-2 premium-platinum-text">Platinum Member</h4>
                     <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-6">₹1499 / MO • 3 Skill Tags</p>
@@ -172,11 +238,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, creators, setCreators }) =>
                     <button
                       key={tag}
                       onClick={() => toggleTag(tag)}
-                      className={`p-6 text-left border-2 rounded-xl transition flex flex-col gap-2 ${
-                        formData.purchasedTags.includes(tag) 
-                          ? (formData.tier === 'PLATINUM' ? 'premium-platinum-border platinum-glow bg-zinc-50' : 'border-black bg-black text-white') 
+                      className={`p-6 text-left border-2 rounded-xl transition flex flex-col gap-2 ${formData.purchasedTags.includes(tag)
+                          ? (formData.tier === 'PLATINUM' ? 'premium-platinum-border platinum-glow bg-zinc-50' : 'border-black bg-black text-white')
                           : 'border-gray-100 hover:border-black'
-                      }`}
+                        }`}
                     >
                       <span className={`text-xs font-black uppercase tracking-widest ${formData.purchasedTags.includes(tag) && formData.tier === 'PLATINUM' ? 'premium-platinum-text' : ''}`}>{tag}</span>
                       <span className="text-[8px] font-mono opacity-50 uppercase">Featured Tag</span>

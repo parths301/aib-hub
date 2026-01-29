@@ -1,27 +1,31 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, UserRole } from '../types';
+import { supabase } from '../supabaseClient'; // Import supabase client
 
-interface LoginProps {
-  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-  users: User[];
-}
-
-const Login: React.FC<LoginProps> = ({ setCurrentUser, users }) => {
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = users.find(u => u.email === email);
-    if (user) {
-      setCurrentUser(user);
-      navigate(user.role === UserRole.ADMIN ? '/admin' : '/dashboard');
+    setLoading(true);
+    setError('');
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
     } else {
-      setError('Invalid email or password.');
+      // Login successful, AuthProvider will detect session change
+      // Navigate to dashboard or home
+      navigate('/dashboard');
     }
   };
 
@@ -33,8 +37,8 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser, users }) => {
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-[10px] font-black text-gray-500 mb-1 uppercase tracking-widest">Email Address</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               className="w-full border-2 border-black rounded-lg px-4 py-3 font-bold text-sm outline-none focus:bg-gray-50"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -44,8 +48,8 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser, users }) => {
           </div>
           <div>
             <label className="block text-[10px] font-black text-gray-500 mb-1 uppercase tracking-widest">Password</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               className="w-full border-2 border-black rounded-lg px-4 py-3 font-bold text-sm outline-none focus:bg-gray-50"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -53,27 +57,24 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser, users }) => {
               required
             />
           </div>
-          <button type="submit" className="w-full bg-black text-white py-4 font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition rounded-xl">
-            Enter Dashboard
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-black text-white py-4 font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition rounded-xl disabled:opacity-50"
+          >
+            {loading ? 'Authenticating...' : 'Enter Dashboard'}
           </button>
         </form>
         <div className="mt-8 pt-8 border-t border-gray-100 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">
           New here? <Link to="/register" className="text-black hover:underline">Register Account</Link>
         </div>
       </div>
-      
+
       {/* Updated Demo Credentials Box */}
       <div className="mt-10 bg-black p-6 border-2 border-black text-white rounded-xl">
         <p className="font-black text-[10px] uppercase tracking-widest mb-3 text-gray-400">Restricted Access / Demo Logins</p>
         <div className="space-y-2 font-mono text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-500 uppercase">Admin:</span>
-            <span>admin@creatorhub.com</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500 uppercase">Creator:</span>
-            <span>arjun@example.com</span>
-          </div>
+          <p className="text-gray-500">Note: Demo accounts require Supabase Auth to be mocked or actual accounts created.</p>
         </div>
       </div>
     </div>

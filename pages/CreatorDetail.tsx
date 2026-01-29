@@ -1,15 +1,53 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Creator } from '../types';
+import { supabase } from '../supabaseClient';
 
-interface CreatorDetailProps {
-  creators: Creator[];
-}
-
-const CreatorDetail: React.FC<CreatorDetailProps> = ({ creators }) => {
+const CreatorDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const creator = creators.find(c => c.id === id);
+  const [creator, setCreator] = useState<Creator | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCreator = async () => {
+      if (!id) return;
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('creators')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching creator:', error);
+      } else if (data) {
+        setCreator({
+          id: data.id,
+          fullName: data.full_name,
+          email: data.email,
+          city: data.city,
+          skills: data.skills || [],
+          purchasedTags: data.purchased_tags || [],
+          bio: data.bio,
+          experience: data.experience,
+          profilePhoto: data.profile_photo,
+          portfolio: data.portfolio || [],
+          whatsapp: data.whatsapp,
+          isFeatured: data.is_featured,
+          tier: data.tier as any,
+          status: data.status as any
+        });
+      }
+      setLoading(false);
+    };
+
+    fetchCreator();
+  }, [id]);
+
+  if (loading) {
+    return <div className="p-24 text-center text-sm font-black uppercase tracking-widest">Loading Profile...</div>;
+  }
 
   if (!creator) {
     return (
@@ -28,7 +66,7 @@ const CreatorDetail: React.FC<CreatorDetailProps> = ({ creators }) => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-10">
         <Link to="/creators" className="text-zinc-400 inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-widest group hover:text-black transition">
-          <svg className="w-3 h-3 transform group-hover:-translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
+          <svg className="w-3 h-3 transform group-hover:-translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
           Back to directory
         </Link>
       </div>
@@ -36,28 +74,25 @@ const CreatorDetail: React.FC<CreatorDetailProps> = ({ creators }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Profile Sidebar */}
         <div className="lg:col-span-4">
-          <div className={`bg-white border-2 rounded-3xl p-8 text-center sticky top-24 transition-all duration-500 ${
-            isPlatinum ? 'premium-platinum-border platinum-glow' : 
-            isGold ? 'premium-gold-border gold-glow' : 
-            'border-black'
-          }`}>
-            <div className={`w-36 h-36 mx-auto mb-6 border-2 rounded-2xl overflow-hidden shadow-lg ${
-              isPlatinum ? 'border-zinc-300' : isGold ? 'border-[#bf953f]' : 'border-black'
+          <div className={`bg-white border-2 rounded-3xl p-8 text-center sticky top-24 transition-all duration-500 ${isPlatinum ? 'premium-platinum-border platinum-glow' :
+              isGold ? 'premium-gold-border gold-glow' :
+                'border-black'
             }`}>
+            <div className={`w-36 h-36 mx-auto mb-6 border-2 rounded-2xl overflow-hidden shadow-lg ${isPlatinum ? 'border-zinc-300' : isGold ? 'border-[#bf953f]' : 'border-black'
+              }`}>
               <img src={creator.profilePhoto} alt={creator.fullName} className="w-full h-full object-cover" />
             </div>
 
-            <h1 className={`text-3xl font-black uppercase tracking-tighter mb-1 flex items-center justify-center gap-2 ${
-              isPlatinum ? 'premium-platinum-text' : isGold ? 'premium-gold-text' : 'text-black'
-            }`}>
+            <h1 className={`text-3xl font-black uppercase tracking-tighter mb-1 flex items-center justify-center gap-2 ${isPlatinum ? 'premium-platinum-text' : isGold ? 'premium-gold-text' : 'text-black'
+              }`}>
               {creator.fullName}
               {isPremium && (
                 <svg className={`w-6 h-6 ${isPlatinum ? 'text-zinc-500' : 'text-[#bf953f]'}`} fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.604.3 1.166.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.604.3 1.166.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               )}
             </h1>
-            
+
             <p className="text-zinc-400 font-mono text-[10px] uppercase tracking-widest mb-6 flex items-center justify-center gap-1.5">
               📍 {creator.city}
             </p>
@@ -74,15 +109,14 @@ const CreatorDetail: React.FC<CreatorDetailProps> = ({ creators }) => {
             )}
 
             <div className="space-y-4">
-              <a 
-                href={`https://wa.me/${creator.whatsapp}`} 
-                target="_blank" 
+              <a
+                href={`https://wa.me/${creator.whatsapp}`}
+                target="_blank"
                 rel="noreferrer"
-                className={`flex w-full py-4 text-[10px] font-black uppercase tracking-widest transition items-center justify-center gap-2 rounded-2xl shadow-md transform hover:-translate-y-0.5 ${
-                  isPlatinum ? 'premium-platinum-gradient text-black border border-zinc-500' : 
-                  isGold ? 'premium-gold-gradient text-black border border-[#aa771c]' : 
-                  'bg-black text-white hover:bg-zinc-800'
-                }`}
+                className={`flex w-full py-4 text-[10px] font-black uppercase tracking-widest transition items-center justify-center gap-2 rounded-2xl shadow-md transform hover:-translate-y-0.5 ${isPlatinum ? 'premium-platinum-gradient text-black border border-zinc-500' :
+                    isGold ? 'premium-gold-gradient text-black border border-[#aa771c]' :
+                      'bg-black text-white hover:bg-zinc-800'
+                  }`}
               >
                 Connect on WhatsApp
               </a>
@@ -107,15 +141,13 @@ const CreatorDetail: React.FC<CreatorDetailProps> = ({ creators }) => {
         {/* Content Area */}
         <div className="lg:col-span-8 space-y-12">
           {/* Statement Card */}
-          <section className={`bg-white p-10 border-l-8 rounded-3xl shadow-sm relative overflow-hidden ${
-            isPlatinum ? 'border-zinc-500 platinum-glow' : 
-            isGold ? 'border-[#bf953f] gold-glow' : 
-            'border-black'
-          }`}>
+          <section className={`bg-white p-10 border-l-8 rounded-3xl shadow-sm relative overflow-hidden ${isPlatinum ? 'border-zinc-500 platinum-glow' :
+              isGold ? 'border-[#bf953f] gold-glow' :
+                'border-black'
+            }`}>
             <div className="absolute top-4 right-6 text-6xl text-zinc-50 opacity-10 font-serif leading-none">“</div>
-            <h2 className={`text-[10px] font-black uppercase tracking-widest mb-6 ${
-              isPlatinum ? 'premium-platinum-text' : isGold ? 'premium-gold-text' : 'text-zinc-400'
-            }`}>Professional Statement</h2>
+            <h2 className={`text-[10px] font-black uppercase tracking-widest mb-6 ${isPlatinum ? 'premium-platinum-text' : isGold ? 'premium-gold-text' : 'text-zinc-400'
+              }`}>Professional Statement</h2>
             <p className="text-xl text-zinc-700 font-light leading-relaxed whitespace-pre-line italic relative z-10">
               "{creator.bio || 'This creator hasn\'t uploaded a statement yet.'}"
             </p>

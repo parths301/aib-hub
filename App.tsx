@@ -1,8 +1,9 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { INITIAL_CREATORS, INITIAL_JOBS, INITIAL_USERS } from './data';
-import { Creator, Job, User, UserRole } from './types';
+import { User, UserRole } from './types';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CityProvider, useCity } from './contexts/CityContext';
+import { supabase } from './supabaseClient';
 
 // Pages
 import Home from './pages/Home';
@@ -20,67 +21,56 @@ import About from './pages/About';
 import Pricing from './pages/Pricing';
 
 const AppContent: React.FC = () => {
-  const [creators, setCreators] = useState<Creator[]>(() => {
-    const saved = localStorage.getItem('creators');
-    return saved ? JSON.parse(saved) : INITIAL_CREATORS;
-  });
+  const { user: authUser, role, signOut } = useAuth();
 
-  const [jobs, setJobs] = useState<Job[]>(() => {
-    const saved = localStorage.getItem('jobs');
-    return saved ? JSON.parse(saved) : INITIAL_JOBS;
-  });
-
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('currentUser');
-    return saved ? JSON.parse(saved) : null;
-  });
+  // Create a compatible User object from Auth Context
+  const currentUser: User | null = authUser ? {
+    id: authUser.id,
+    email: authUser.email!,
+    role: role || UserRole.CREATOR,
+  } : null;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
   const [jobSubmitSuccess, setJobSubmitSuccess] = useState(false);
-  
+
   const location = useLocation();
 
-  useEffect(() => {
-    localStorage.setItem('creators', JSON.stringify(creators));
-  }, [creators]);
-
-  useEffect(() => {
-    localStorage.setItem('jobs', JSON.stringify(jobs));
-  }, [jobs]);
-
-  useEffect(() => {
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-  }, [currentUser]);
-
-  const handleLogout = () => {
-    setCurrentUser(null);
+  const handleLogout = async () => {
+    await signOut();
   };
 
-  const handlePostJob = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePostJob = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
-    const newJob: Job = {
-      id: 'j' + Date.now(),
+
+    const newJob = {
       title: formData.get('title') as string,
       city: formData.get('city') as string,
-      requiredSkills: (formData.get('skills') as string).split(',').map(s => s.trim()),
+      required_skills: (formData.get('skills') as string).split(',').map(s => s.trim()),
       description: formData.get('description') as string,
       budget: formData.get('budget') as string,
       company: formData.get('company') as string || 'Guest Client',
-      contactEmail: formData.get('email') as string,
-      postedDate: new Date().toISOString().split('T')[0],
-      whatsapp: formData.get('whatsapp') as string
+      contact_email: formData.get('email') as string,
+      whatsapp: formData.get('whatsapp') as string || '',
+      posted_date: new Date().toISOString().split('T')[0]
     };
 
-    setJobs(prev => [newJob, ...prev]);
-    setJobSubmitSuccess(true);
-    setTimeout(() => {
-      setJobSubmitSuccess(false);
-      setIsPostJobOpen(false);
-    }, 2000);
+    const { error } = await supabase.from('jobs').insert([newJob]);
+
+    if (!error) {
+      setJobSubmitSuccess(true);
+      setTimeout(() => {
+        setJobSubmitSuccess(false);
+        setIsPostJobOpen(false);
+      }, 2000);
+    } else {
+      alert('Failed to post job. Please try again.');
+      console.error(error);
+    }
   };
+
+  const { selectedCity, setSelectedCity, cities } = useCity();
 
   const NavLinks = () => (
     <>
@@ -88,6 +78,19 @@ const AppContent: React.FC = () => {
       <Link to="/jobs" onClick={() => setIsMenuOpen(false)} className={`px-3 py-2 text-sm font-semibold uppercase tracking-widest ${location.pathname === '/jobs' ? 'text-black font-black underline' : 'text-gray-600 hover:text-black'}`}>Jobs</Link>
       <Link to="/membership" onClick={() => setIsMenuOpen(false)} className={`px-3 py-2 text-sm font-semibold uppercase tracking-widest ${location.pathname === '/membership' ? 'text-black font-black underline' : 'text-gray-600 hover:text-black'}`}>Membership</Link>
     </>
+  );
+
+  const CityDropdown = () => (
+    <select
+      value={selectedCity}
+      onChange={(e) => setSelectedCity(e.target.value)}
+      className="bg-black text-white border border-zinc-700 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest cursor-pointer outline-none hover:bg-zinc-800 transition"
+    >
+      <option value="">All Cities</option>
+      {cities.map(city => (
+        <option key={city} value={city}>{city}</option>
+      ))}
+    </select>
   );
 
   return (
@@ -100,8 +103,9 @@ const AppContent: React.FC = () => {
               <Link to="/" className="text-2xl font-black text-black tracking-tighter uppercase">
                 Aib HUB
               </Link>
-              <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
+              <div className="hidden sm:ml-8 sm:flex sm:space-x-6 sm:items-center">
                 <NavLinks />
+                <CityDropdown />
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -122,7 +126,7 @@ const AppContent: React.FC = () => {
                     {currentUser.role === UserRole.ADMIN && (
                       <Link to="/admin" className="text-black hover:underline text-sm font-bold uppercase tracking-wider">Admin</Link>
                     )}
-                    <button 
+                    <button
                       onClick={handleLogout}
                       className="text-gray-400 hover:text-black text-sm font-semibold uppercase"
                     >
@@ -131,16 +135,16 @@ const AppContent: React.FC = () => {
                   </>
                 )}
               </div>
-              
+
               {/* Mobile Menu Toggle */}
-              <button 
+              <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="sm:hidden text-black p-2 focus:outline-none"
               >
                 {isMenuOpen ? (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 ) : (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
                 )}
               </button>
             </div>
@@ -169,7 +173,7 @@ const AppContent: React.FC = () => {
                     {currentUser.role === UserRole.ADMIN && (
                       <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-black text-sm font-bold uppercase tracking-wider">Admin Panel</Link>
                     )}
-                    <button 
+                    <button
                       onClick={() => { handleLogout(); setIsMenuOpen(false); }}
                       className="text-red-500 text-sm font-semibold uppercase"
                     >
@@ -185,25 +189,25 @@ const AppContent: React.FC = () => {
 
       <main className="flex-grow relative">
         <Routes>
-          <Route path="/" element={<Home creators={creators} jobs={jobs} />} />
-          <Route path="/creators" element={<CreatorListing creators={creators} />} />
-          <Route path="/creators/:id" element={<CreatorDetail creators={creators} />} />
-          <Route 
-            path="/profile" 
-            element={currentUser?.role === UserRole.CREATOR ? <MyProfile user={currentUser} creators={creators} setCreators={setCreators} /> : <Navigate to="/login" />} 
+          <Route path="/" element={<Home />} />
+          <Route path="/creators" element={<CreatorListing />} />
+          <Route path="/creators/:id" element={<CreatorDetail />} />
+          <Route
+            path="/profile"
+            element={currentUser?.role === UserRole.CREATOR ? <MyProfile user={currentUser} /> : <Navigate to="/login" />}
           />
-          <Route path="/jobs" element={<JobsListing jobs={jobs} />} />
-          <Route path="/jobs/:id" element={<JobDetail jobs={jobs} />} />
+          <Route path="/jobs" element={<JobsListing />} />
+          <Route path="/jobs/:id" element={<JobDetail />} />
           <Route path="/membership" element={<Pricing />} />
-          <Route path="/login" element={<Login setCurrentUser={setCurrentUser} users={INITIAL_USERS} />} />
-          <Route path="/register" element={<Register setCurrentUser={setCurrentUser} creators={creators} setCreators={setCreators} />} />
-          <Route 
-            path="/dashboard" 
-            element={currentUser?.role === UserRole.CREATOR ? <Dashboard user={currentUser} creators={creators} setCreators={setCreators} /> : <Navigate to="/login" />} 
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/dashboard"
+            element={currentUser ? <Dashboard user={currentUser} /> : <Navigate to="/login" />}
           />
-          <Route 
-            path="/admin" 
-            element={currentUser?.role === UserRole.ADMIN ? <AdminPanel creators={creators} setCreators={setCreators} jobs={jobs} setJobs={setJobs} /> : <Navigate to="/login" />} 
+          <Route
+            path="/admin"
+            element={currentUser?.role === UserRole.ADMIN ? <AdminPanel /> : <Navigate to="/login" />}
           />
           <Route path="/contact" element={<Contact />} />
           <Route path="/about" element={<About />} />
@@ -211,12 +215,12 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Floating Post Job Button */}
-      <button 
+      <button
         onClick={() => setIsPostJobOpen(true)}
         className="fixed bottom-20 sm:bottom-8 left-6 z-40 bg-black text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3 hover:scale-105 transition-transform active:scale-95 group border border-zinc-700"
       >
         <div className="bg-white text-black p-1.5 rounded-lg group-hover:rotate-90 transition-transform">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
         </div>
         <span className="text-xs font-black uppercase tracking-[0.15em] pr-2">Post Job</span>
       </button>
@@ -225,12 +229,12 @@ const AppContent: React.FC = () => {
       {isPostJobOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black bg-opacity-90 backdrop-blur-sm" onClick={() => !jobSubmitSuccess && setIsPostJobOpen(false)}></div>
-          
+
           <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl relative z-10 border-2 border-black animate-in zoom-in duration-200">
             {jobSubmitSuccess ? (
               <div className="py-24 text-center animate-in fade-in duration-500">
                 <div className="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-6 scale-110">
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"/></svg>
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <h2 className="text-2xl font-black uppercase tracking-tighter">Brief Received</h2>
                 <p className="text-zinc-400 font-mono text-[10px] uppercase tracking-widest mt-2">SYSTEM: LISTING COMMITTED TO DATABASE</p>
@@ -243,7 +247,7 @@ const AppContent: React.FC = () => {
                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Direct creator recruitment protocol</p>
                   </div>
                   <button onClick={() => setIsPostJobOpen(false)} className="text-zinc-400 hover:text-black transition p-2">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
 
@@ -298,15 +302,15 @@ const AppContent: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black px-6 py-3 flex justify-between items-center z-50">
         <Link to="/creators" className={`flex flex-col items-center gap-1 ${location.pathname === '/creators' ? 'text-black' : 'text-gray-400'}`}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
           <span className="text-[8px] font-black uppercase tracking-widest">Creators</span>
         </Link>
         <Link to="/jobs" className={`flex flex-col items-center gap-1 ${location.pathname === '/jobs' ? 'text-black' : 'text-gray-400'}`}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
           <span className="text-[8px] font-black uppercase tracking-widest">Jobs</span>
         </Link>
         <Link to="/membership" className="bg-black text-white px-4 py-2 rounded-lg flex flex-col items-center gap-0.5">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
           <span className="text-[7px] font-black uppercase tracking-widest">Upgrade</span>
         </Link>
       </div>
@@ -330,7 +334,11 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => (
   <Router>
-    <AppContent />
+    <AuthProvider>
+      <CityProvider>
+        <AppContent />
+      </CityProvider>
+    </AuthProvider>
   </Router>
 );
 
