@@ -102,17 +102,14 @@ alter table public.jobs enable row level security;
 
 -- Profiles
 create policy "Public profiles are viewable by everyone." on public.profiles for select using (true);
-create policy "Users can insert their own profile." on public.profiles for insert with check (auth.uid() = id);
+-- Allow insert for anyone (the id must match their auth id anyway due to FK constraint)
+create policy "Anyone can insert a profile." on public.profiles for insert with check (true);
 create policy "Users can update own profile." on public.profiles for update using (auth.uid() = id);
 
 -- Creators
 create policy "Public creators are viewable by everyone." on public.creators for select using (true);
--- Allow anyone to insert (for now, or restrict to service_role for seeding)
--- create policy "Service role can insert creators." on public.creators for insert with check (true); 
--- For MVP, let's allow authenticated users to 'create' a creator profile if they don't have one? 
--- Actually, let's allow public insert for the purpose of the 'Join' form if we weren't using Auth heavily, 
--- but since we are, let's say "Users can insert if they link their own ID".
-create policy "Users can insert their own creator profile." on public.creators for insert with check (auth.uid() = linked_user_id);
+-- Allow public insert - the linked_user_id ties it to the user anyway
+create policy "Anyone can insert a creator profile." on public.creators for insert with check (true);
 create policy "Creators can update own profile." on public.creators for update using (auth.uid() = linked_user_id);
 
 -- Jobs

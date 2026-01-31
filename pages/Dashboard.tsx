@@ -51,7 +51,46 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }, [user]);
 
   if (loading) return <div className="p-10 font-mono text-xs">INITIALIZING SYSTEM...</div>;
-  if (!formData) return <div className="p-10 font-mono text-xs text-red-500">ERROR: PROFILE NOT FOUND</div>;
+
+  if (!formData) {
+    return (
+      <div className="max-w-md mx-auto py-24 px-4">
+        <div className="bg-white border-2 border-black p-10 rounded-2xl shadow-xl text-center">
+          <h2 className="text-2xl font-black uppercase tracking-tighter mb-4">Setup Settings</h2>
+          <p className="text-gray-500 mb-8 text-sm">Initialize your creator settings to continue.</p>
+          <button
+            onClick={async () => {
+              setLoading(true);
+              const { error } = await supabase.from('creators').insert([{
+                linked_user_id: user.id,
+                full_name: user.user_metadata?.full_name || 'Anonymous',
+                email: user.email,
+                city: user.user_metadata?.city || '',
+                skills: [],
+                purchased_tags: [],
+                bio: '',
+                status: 'PENDING',
+                tier: 'BASE',
+                is_featured: false,
+                profile_photo: `https://picsum.photos/seed/${user.id}/400/400`
+              }]);
+
+              if (error) {
+                console.error('Error creating profile:', error);
+                alert('Failed to create profile. Please contact support.');
+              } else {
+                window.location.reload();
+              }
+              setLoading(false);
+            }}
+            className="bg-black text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition"
+          >
+            Initialize Settings
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const updateCreatorInDB = async (updatedData: Partial<Creator>) => {
     // Map partial Creator back to DB columns
