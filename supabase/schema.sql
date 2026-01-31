@@ -10,6 +10,20 @@ create table public.profiles (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- 1b. Trigger to auto-create profile on user signup
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, role)
+  values (new.id, new.email, 'CREATOR');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
 -- 2. Create Creators Table
 -- Note: id is now auto-generated UUID. linked_user_id is the link to Auth.
 create table public.creators (

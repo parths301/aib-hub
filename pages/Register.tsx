@@ -41,23 +41,8 @@ const Register: React.FC = () => {
     if (user) {
       const userId = user.id;
 
-      // Step 1: Create a row in the 'profiles' table (required for foreign key)
-      const { error: profileError } = await supabase.from('profiles').insert([
-        {
-          id: userId,
-          email: formData.email,
-          role: 'CREATOR'
-        }
-      ]);
-
-      if (profileError) {
-        console.error('Profile creation failed:', profileError);
-        setError('Account created but profile setup failed. Please contact support.');
-        setLoading(false);
-        return;
-      }
-
-      // Step 2: Create the 'creators' row with linked_user_id
+      // Profile is now auto-created by database trigger on auth.users insert
+      // Just create the 'creators' row with linked_user_id
       const { error: creatorError } = await supabase.from('creators').insert([
         {
           linked_user_id: userId, // Link to the profiles table
