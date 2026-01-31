@@ -21,6 +21,8 @@ const Register: React.FC = () => {
     setError('');
 
     // Sign up with Supabase
+    // The database trigger (handle_new_user) automatically creates both
+    // the profiles and creators rows using the metadata we pass here
     const { data: { user }, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -39,32 +41,8 @@ const Register: React.FC = () => {
     }
 
     if (user) {
-      const userId = user.id;
-
-      // Profile is now auto-created by database trigger on auth.users insert
-      // Just create the 'creators' row with linked_user_id
-      const { error: creatorError } = await supabase.from('creators').insert([
-        {
-          linked_user_id: userId, // Link to the profiles table
-          full_name: formData.fullName,
-          email: formData.email,
-          city: formData.city,
-          skills: [],
-          purchased_tags: [],
-          bio: '',
-          status: 'PENDING',
-          tier: 'BASE',
-          is_featured: false,
-          profile_photo: `https://picsum.photos/seed/${userId}/400/400`
-        }
-      ]);
-
-      if (creatorError) {
-        console.error('Creator profile creation failed:', creatorError);
-        setError('Account created but creator profile setup failed. Please try again.');
-      } else {
-        setSuccess(true);
-      }
+      // Profile and creator are auto-created by database trigger
+      setSuccess(true);
       setLoading(false);
     }
   };

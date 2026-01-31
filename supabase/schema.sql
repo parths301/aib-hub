@@ -10,12 +10,43 @@ create table public.profiles (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 1b. Trigger to auto-create profile on user signup
+-- 1b. Trigger to auto-create profile AND creator on user signup
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  new_profile_id uuid;
 begin
+  -- Insert into profiles table
   insert into public.profiles (id, email, role)
   values (new.id, new.email, 'CREATOR');
+  
+  -- Also insert into creators table using metadata from signup
+  insert into public.creators (
+    linked_user_id,
+    full_name,
+    email,
+    city,
+    skills,
+    purchased_tags,
+    bio,
+    status,
+    tier,
+    is_featured,
+    profile_photo
+  ) values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    new.email,
+    coalesce(new.raw_user_meta_data->>'city', ''),
+    '{}',
+    '{}',
+    '',
+    'PENDING',
+    'BASE',
+    false,
+    'https://picsum.photos/seed/' || new.id::text || '/400/400'
+  );
+  
   return new;
 end;
 $$ language plpgsql security definer;
