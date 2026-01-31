@@ -12,13 +12,11 @@ const Pricing: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-      <header className="text-center mb-24">
-        <h1 className="text-6xl font-black text-black mb-6 uppercase tracking-tighter">Boost Your Profile</h1>
-        <p className="text-xl text-gray-500 font-light max-w-2xl mx-auto uppercase tracking-wide">
-          Stand out in your city. Get discovered by clients faster with memberships and skill tags.
-        </p>
-      </header>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="mb-16 pb-8 border-b-2 border-black">
+        <h1 className="text-5xl font-black text-black uppercase tracking-tighter">Boost Your Profile</h1>
+        <p className="text-gray-500 font-mono text-sm mt-2 uppercase">GET DISCOVERED BY CLIENTS FASTER</p>
+      </div>
 
       {/* Membership Plans Section */}
       <section className="mb-32">
@@ -33,7 +31,7 @@ const Pricing: React.FC = () => {
             <div className="absolute top-0 right-0 premium-gold-gradient text-black px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-bl-xl">GOLD</div>
             <h3 className="text-3xl font-black mb-8 uppercase tracking-tighter">Gold Plan</h3>
             <p className="text-5xl font-black mb-10 text-black">₹799<span className="text-sm font-light text-gray-400">/mo</span></p>
-            
+
             <ul className="space-y-4 mb-12 flex-grow">
               <li className="flex items-center gap-3 text-sm font-bold uppercase tracking-tight">
                 <div className="w-5 h-5 rounded-full premium-gold-gradient flex items-center justify-center text-[10px]">✓</div>
@@ -64,7 +62,7 @@ const Pricing: React.FC = () => {
             <div className="absolute top-0 right-0 premium-platinum-gradient text-black px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-bl-xl border-l border-b border-zinc-500">PLATINUM</div>
             <h3 className="text-3xl font-black mb-8 uppercase tracking-tighter premium-platinum-text">Platinum Plan</h3>
             <p className="text-5xl font-black mb-10 text-black">₹1499<span className="text-sm font-light text-gray-400">/mo</span></p>
-            
+
             <ul className="space-y-4 mb-12 flex-grow">
               <li className="flex items-center gap-3 text-sm font-bold uppercase tracking-tight">
                 <div className="w-5 h-5 rounded-full premium-platinum-gradient text-black flex items-center justify-center text-[10px]">✓</div>
@@ -109,7 +107,7 @@ const Pricing: React.FC = () => {
               <div className="text-4xl mb-4">{tag.icon}</div>
               <h4 className="text-lg font-black uppercase tracking-tight mb-1">{tag.label}</h4>
               <p className="text-xs text-gray-400 mb-6 font-light">{tag.desc}</p>
-              
+
               <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-black text-black tracking-widest">₹199<span className="text-[10px] text-gray-400"> /MO</span></p>

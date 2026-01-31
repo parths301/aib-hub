@@ -21,13 +21,14 @@ import About from './pages/About';
 import Pricing from './pages/Pricing';
 
 const AppContent: React.FC = () => {
-  const { user: authUser, role, signOut } = useAuth();
+  const { user: authUser, role, creatorId, signOut } = useAuth();
 
   // Create a compatible User object from Auth Context
   const currentUser: User | null = authUser ? {
     id: authUser.id,
     email: authUser.email!,
     role: role || UserRole.CREATOR,
+    creatorId: creatorId || undefined,
   } : null;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);

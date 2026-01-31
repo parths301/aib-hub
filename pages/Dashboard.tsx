@@ -66,6 +66,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     if (updatedData.portfolio !== undefined) dbUpdate.portfolio = updatedData.portfolio;
     if (updatedData.tier !== undefined) dbUpdate.tier = updatedData.tier;
     if (updatedData.purchasedTags !== undefined) dbUpdate.purchased_tags = updatedData.purchasedTags;
+    if (updatedData.skills !== undefined) dbUpdate.skills = updatedData.skills;
+    if (updatedData.experience !== undefined) dbUpdate.experience = updatedData.experience;
 
     const { error } = await supabase
       .from('creators')
@@ -97,8 +99,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       city: formData.city,
       whatsapp: formData.whatsapp,
       profilePhoto: formData.profilePhoto,
-      bio: formData.bio
+      bio: formData.bio,
+      skills: formData.skills,
+      experience: formData.experience
     });
+  };
+
+  const [newSkill, setNewSkill] = useState('');
+
+  const addSkill = () => {
+    if (newSkill.trim() && !formData.skills.includes(newSkill.trim())) {
+      setFormData(prev => prev ? ({ ...prev, skills: [...prev.skills, newSkill.trim()] }) : null);
+      setNewSkill('');
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setFormData(prev => prev ? ({ ...prev, skills: prev.skills.filter(s => s !== skill) }) : null);
   };
 
   const toggleTag = (tag: string) => {
@@ -173,8 +190,40 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               </div>
               <div>
                 <label className="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Bio Statement</label>
-                <textarea name="bio" value={formData.bio} onChange={handleChange} rows={5} className="w-full border-2 border-black rounded-xl px-4 py-3 font-bold text-sm outline-none focus:bg-gray-50" required />
+                <textarea name="bio" value={formData.bio} onChange={handleChange} rows={4} className="w-full border-2 border-black rounded-xl px-4 py-3 font-bold text-sm outline-none focus:bg-gray-50" required />
               </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Years of Experience</label>
+                <input type="text" name="experience" value={formData.experience || ''} onChange={handleChange} placeholder="e.g. 5+ years in video editing" className="w-full border-2 border-black rounded-xl px-4 py-3 font-bold text-sm outline-none focus:bg-gray-50" />
+              </div>
+
+              {/* Skills Editor */}
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Your Skills</label>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {formData.skills.map(skill => (
+                    <span key={skill} className="bg-black text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      {skill}
+                      <button type="button" onClick={() => removeSkill(skill)} className="text-zinc-400 hover:text-white">&times;</button>
+                    </span>
+                  ))}
+                  {formData.skills.length === 0 && <span className="text-zinc-400 text-xs italic">No skills added yet</span>}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                    placeholder="Add a skill..."
+                    className="flex-1 border-2 border-zinc-200 rounded-xl px-4 py-2 font-bold text-sm outline-none focus:border-black"
+                  />
+                  <button type="button" onClick={addSkill} className="bg-zinc-100 hover:bg-zinc-200 text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition">
+                    Add
+                  </button>
+                </div>
+              </div>
+
               <button type="submit" className="bg-black text-white px-10 py-5 font-black text-xs uppercase tracking-widest hover:bg-gray-800 transition rounded-xl">
                 Update Profile
               </button>
@@ -239,8 +288,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                       key={tag}
                       onClick={() => toggleTag(tag)}
                       className={`p-6 text-left border-2 rounded-xl transition flex flex-col gap-2 ${formData.purchasedTags.includes(tag)
-                          ? (formData.tier === 'PLATINUM' ? 'premium-platinum-border platinum-glow bg-zinc-50' : 'border-black bg-black text-white')
-                          : 'border-gray-100 hover:border-black'
+                        ? (formData.tier === 'PLATINUM' ? 'premium-platinum-border platinum-glow bg-zinc-50' : 'border-black bg-black text-white')
+                        : 'border-gray-100 hover:border-black'
                         }`}
                     >
                       <span className={`text-xs font-black uppercase tracking-widest ${formData.purchasedTags.includes(tag) && formData.tier === 'PLATINUM' ? 'premium-platinum-text' : ''}`}>{tag}</span>

@@ -89,12 +89,12 @@ const CreatorListing: React.FC = () => {
         <input
           type="text"
           placeholder="SEARCH..."
-          className="border-2 border-black bg-white rounded-lg px-3 py-1.5 font-bold uppercase tracking-widest text-[10px] focus:bg-gray-50 outline-none w-full md:w-48"
+          className="bg-black text-white border border-zinc-700 rounded-lg px-3 py-2 font-bold uppercase tracking-widest text-[10px] placeholder-zinc-500 focus:border-zinc-500 outline-none w-full md:w-48"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <select
-          className="border-2 border-black bg-white rounded-lg px-3 py-1.5 outline-none font-bold uppercase tracking-widest text-[10px] cursor-pointer"
+          className="bg-black text-white border border-zinc-700 rounded-lg px-3 py-2 outline-none font-bold uppercase tracking-widest text-[10px] cursor-pointer hover:bg-zinc-800 transition"
           value={selectedCity}
           onChange={(e) => setSelectedCity(e.target.value)}
         >
@@ -102,7 +102,7 @@ const CreatorListing: React.FC = () => {
           {globalCities.map(city => <option key={city} value={city}>{city.toUpperCase()}</option>)}
         </select>
         <select
-          className="border-2 border-black bg-white rounded-lg px-3 py-1.5 outline-none font-bold uppercase tracking-widest text-[10px] cursor-pointer"
+          className="bg-black text-white border border-zinc-700 rounded-lg px-3 py-2 outline-none font-bold uppercase tracking-widest text-[10px] cursor-pointer hover:bg-zinc-800 transition"
           value={selectedSkill}
           onChange={(e) => setSelectedSkill(e.target.value)}
         >
