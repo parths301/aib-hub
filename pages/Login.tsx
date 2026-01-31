@@ -37,7 +37,7 @@ const Login: React.FC = () => {
     setLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/#/login`,
+      redirectTo: `http://3.109.49.103:3000/#/login`,
     });
 
     if (error) {
