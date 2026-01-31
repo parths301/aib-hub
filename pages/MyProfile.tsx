@@ -35,12 +35,14 @@ const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
       // For now, let's rely on the user.creatorId if available, OR query where linked_user_id = user.id
 
       // Query creator by linked_user_id which is the auth user's ID
+      console.log('Fetching profile for user:', user.id);
       const query = supabase
         .from('creators')
         .select('*')
         .eq('linked_user_id', user.id);
 
       const { data, error } = await query.single();
+      console.log('Profile fetch result:', { data, error });
 
       if (data) {
         const mappedCreator: Creator = {
@@ -134,7 +136,43 @@ const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
   if (loading) return <div className="p-10 text-center font-mono">LOADING PROFILE...</div>;
 
   if (!creator) {
-    return <div className="p-10 text-center">Profile not found. Please contact support.</div>;
+    return (
+      <div className="max-w-md mx-auto py-24 px-4">
+        <div className="bg-white border-2 border-black p-10 rounded-2xl shadow-xl text-center">
+          <h2 className="text-2xl font-black uppercase tracking-tighter mb-4">Complete Your Profile</h2>
+          <p className="text-gray-500 mb-8 text-sm">Your account needs a creator profile to continue.</p>
+          <button
+            onClick={async () => {
+              setLoading(true);
+              const { error } = await supabase.from('creators').insert([{
+                linked_user_id: user.id,
+                full_name: user.user_metadata?.full_name || 'Anonymous',
+                email: user.email,
+                city: user.user_metadata?.city || '',
+                skills: [],
+                purchased_tags: [],
+                bio: '',
+                status: 'PENDING',
+                tier: 'BASE',
+                is_featured: false,
+                profile_photo: `https://picsum.photos/seed/${user.id}/400/400`
+              }]);
+
+              if (error) {
+                console.error('Error creating profile:', error);
+                alert('Failed to create profile. Please contact support.');
+              } else {
+                window.location.reload();
+              }
+              setLoading(false);
+            }}
+            className="bg-black text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition"
+          >
+            Create Profile Now
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const isPlatinum = creator.tier === 'PLATINUM';
