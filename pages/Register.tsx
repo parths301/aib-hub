@@ -90,13 +90,56 @@ const Register: React.FC = () => {
           </div>
           <div>
             <label className="block text-[10px] font-black text-gray-500 mb-1 uppercase tracking-widest">Base City</label>
-            <input
-              type="text"
-              className="w-full border-2 border-black rounded-lg px-4 py-3 font-bold text-sm outline-none focus:bg-gray-50"
+            <select
+              className="w-full border-2 border-black rounded-lg px-4 py-3 font-bold text-sm outline-none focus:bg-gray-50 bg-white"
               value={formData.city}
               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               required
-            />
+            >
+              <option value="">Select your city</option>
+              <option value="Agra">Agra</option>
+              <option value="Ahmedabad">Ahmedabad</option>
+              <option value="Amritsar">Amritsar</option>
+              <option value="Bengaluru">Bengaluru</option>
+              <option value="Bhopal">Bhopal</option>
+              <option value="Bhubaneswar">Bhubaneswar</option>
+              <option value="Chandigarh">Chandigarh</option>
+              <option value="Chennai">Chennai</option>
+              <option value="Coimbatore">Coimbatore</option>
+              <option value="Dehradun">Dehradun</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Goa">Goa</option>
+              <option value="Gurgaon">Gurgaon</option>
+              <option value="Guwahati">Guwahati</option>
+              <option value="Hyderabad">Hyderabad</option>
+              <option value="Indore">Indore</option>
+              <option value="Jaipur">Jaipur</option>
+              <option value="Jammu">Jammu</option>
+              <option value="Kanpur">Kanpur</option>
+              <option value="Kochi">Kochi</option>
+              <option value="Kolkata">Kolkata</option>
+              <option value="Lucknow">Lucknow</option>
+              <option value="Ludhiana">Ludhiana</option>
+              <option value="Mangalore">Mangalore</option>
+              <option value="Mumbai">Mumbai</option>
+              <option value="Mysore">Mysore</option>
+              <option value="Nagpur">Nagpur</option>
+              <option value="Nashik">Nashik</option>
+              <option value="Noida">Noida</option>
+              <option value="Patna">Patna</option>
+              <option value="Pune">Pune</option>
+              <option value="Raipur">Raipur</option>
+              <option value="Rajkot">Rajkot</option>
+              <option value="Ranchi">Ranchi</option>
+              <option value="Srinagar">Srinagar</option>
+              <option value="Surat">Surat</option>
+              <option value="Thiruvananthapuram">Thiruvananthapuram</option>
+              <option value="Udaipur">Udaipur</option>
+              <option value="Vadodara">Vadodara</option>
+              <option value="Varanasi">Varanasi</option>
+              <option value="Vijayawada">Vijayawada</option>
+              <option value="Visakhapatnam">Visakhapatnam</option>
+            </select>
           </div>
           <div>
             <label className="block text-[10px] font-black text-gray-500 mb-1 uppercase tracking-widest">Security Code (Password)</label>

@@ -17,13 +17,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   useEffect(() => {
     const fetchMyProfile = async () => {
       setLoading(true);
-      // Similar logic to MyProfile: rely on user.creatorId or linked user mechanism
-      let query = supabase.from('creators').select('*');
-      if (user.creatorId) {
-        query = query.eq('id', user.creatorId);
-      } else {
-        query = query.eq('id', user.creatorId);
-      }
+      // Query creator by linked_user_id which is the auth user's ID
+      const query = supabase
+        .from('creators')
+        .select('*')
+        .eq('linked_user_id', user.id);
 
       const { data, error } = await query.single();
 

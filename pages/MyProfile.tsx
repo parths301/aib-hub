@@ -34,20 +34,11 @@ const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
       // Assuming user.creatorId is linked, but even better, we can query by linked_user_id if we set that up.
       // For now, let's rely on the user.creatorId if available, OR query where linked_user_id = user.id
 
-      let query = supabase.from('creators').select('*');
-
-      // Fallback logic: if user.creatorId exists, use it. Else use user.id as linked_user_id
-      if (user.creatorId) {
-        query = query.eq('id', user.creatorId);
-      } else {
-        // If we had linked_user_id... for now let's assume the user object passed down has the correct Creator ID
-        // If this fails, we might need to look up based on email?
-        // Day 1 implementation had a hacky way. 
-        // Let's assume for Day 2 we rely on the Auth Context populating user.creatorId correctly from the users table or metadata.
-        // Actually, the Auth Context in Day 1 might not be fetching the creator ID from the database yet unless we updated it.
-        // Let's check if we can fetch by email just in case, or ID.
-        query = query.eq('id', user.creatorId);
-      }
+      // Query creator by linked_user_id which is the auth user's ID
+      const query = supabase
+        .from('creators')
+        .select('*')
+        .eq('linked_user_id', user.id);
 
       const { data, error } = await query.single();
 
@@ -173,8 +164,8 @@ const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
         {/* Profile Sidebar */}
         <div className="lg:col-span-4">
           <div className={`bg-white border-2 rounded-3xl p-8 text-center sticky top-24 transition-all duration-500 shadow-sm ${isPlatinum ? 'premium-platinum-border platinum-glow' :
-              isGold ? 'premium-gold-border gold-glow' :
-                'border-black'
+            isGold ? 'premium-gold-border gold-glow' :
+              'border-black'
             }`}>
 
             {/* Edit Info Toggle */}
